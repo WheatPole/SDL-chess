@@ -300,9 +300,9 @@ std::vector<std::pair<int, int>> Board::getMoves(int& i, int& j) {
 	case 'P': {
 		//check up or down (reduced from 2 if statements)
 		// -1 down 1 up
-		std::cout << user << " " << turn << std::endl;
+		//std::cout << user << " " << turn << std::endl;
 		int deg = ((!user && turn == 'w') || (user && turn == 'b')) ? -1 : 1;
-		std::cout << deg << std::endl;
+		//std::cout << deg << std::endl;
 		if (i + deg < 8 && i + deg >= 0) {
 			if (board[i + deg][j] == ' ') {
 				res.push_back({ i + deg, j });
@@ -321,10 +321,14 @@ std::vector<std::pair<int, int>> Board::getMoves(int& i, int& j) {
 				}
 			}
 
-			if (j - 1 >= 0 && isEnemy(board[i][j], board[i + deg][j - 1])) {
+
+			if ((j - 1 >= 0 && isEnemy(board[i][j], board[i + deg][j - 1])) ||
+				(j - 1 >= 0 && enpassant.second == j - 1 && enpassant.first == i && isEnemy(board[i][j], board[i][j - 1]))) {
 				res.push_back({ i + deg, j - 1 });
 			}
-			if (j + 1 < 8 && isEnemy(board[i][j], board[i + deg][j + 1])) {
+			//std::cout << j << " " << i << " " << enpassant.first << " " << enpassant.second;
+			if ((j + 1 < 8 && isEnemy(board[i][j], board[i + deg][j + 1])) ||
+				(j + 1 < 8 && enpassant.second == j + 1 && enpassant.first == i && isEnemy(board[i][j], board[i][j + 1]))) {
 				res.push_back({ i + deg, j + 1 });
 			}
 		}
@@ -663,11 +667,15 @@ void Board::drawBoard(SDL_Renderer* r, SDL_Window* w) {
 }
 
 bool Board::putPiece(int i, int j) {
+	//std::cout << enpassant.first << " " << enpassant.second << std::endl;
 	//can be optimised by memo, although not sure if it's worth it
 	std::vector<std::pair<int, int>> available = getMoves(selectedi, selectedj);
 	
 	for (int k = 0; k < available.size(); k++) {
 		if (available[k].first == i && available[k].second == j) {
+			//previous piece
+			char prev = board[i][j];
+
 			board[i][j] = board[selectedi][selectedj];
 			if (tolower(board[selectedi][selectedj]) == 'r') {
 				if ((selectedi == 7 && selectedj == 7) || (i == 7 && j == 7)) {
@@ -709,6 +717,24 @@ bool Board::putPiece(int i, int j) {
 				}
 			}
 
+			//en passant !
+			if (tolower(board[i][j]) == 'p') {
+				if (abs(selectedi - i) == 2) {
+					enpassant = { i, j }; //check if it's a pawn
+				}
+				else {
+					enpassant = { -1, -1 };
+				}
+
+				if (abs(selectedj - j) == 1 && prev == ' ') {
+					board[selectedi][j] = ' ';
+				}
+			}
+			else {
+				enpassant = { -1, -1 };
+			}
+
+
 			board[selectedi][selectedj] = ' ';
 			selectedi = -1;
 			selectedj = -1;
@@ -734,6 +760,7 @@ bool Board::putPiece(int i, int j) {
 			return true;
 		}
 	}
+
 	return false;
 }
 
